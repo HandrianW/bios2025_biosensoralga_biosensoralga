@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kualitas Air</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-light': '#E0F7FA', 'primary-green': '#A7F3D0', 'primary-blue': '#BFDBFE',
+                        'accent-green': '#10B981', 'accent-blue': '#2563EB', 'dark-text': '#374151', 'light-text': '#F3F4F6',
+                    },
+                    fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'], }
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        .status_aman { @apply bg-accent-green/80 backdrop-blur-md text-white; }
+        .card_aman { @apply border-accent-green; }
+        .text_aman { @apply text-accent-green; }
+        .gauge_aman { @apply bg-accent-green; }
+
+        .status_cukup { @apply bg-yellow-500/80 backdrop-blur-md text-white; }
+        .card_cukup { @apply border-yellow-500; }
+        .text_cukup { @apply text-yellow-600; }
+        .gauge_cukup { @apply bg-yellow-500; }
+
+        .status_bahaya { @apply bg-red-600/80 backdrop-blur-md text-white; }
+        .card_bahaya { @apply border-red-600; }
+        .text_bahaya { @apply text-red-600; }
+        .gauge_bahaya { @apply bg-red-600; }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-primary-light via-primary-blue to-primary-green font-sans">
+    
+    <div class="flex h-screen bg-transparent">
+        <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col">
+            <div class="p-4 text-2xl font-bold text-white border-b border-gray-700">
+                Sensor Air
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="index.html" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2l-7 7-7-7M5 10v10a1 1 0 001 1h3m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m0 0h3a1 1 0 001-1V10m-2 11l-2-2" /></svg>
+                    <span>Home</span>
+                </a>
+                <a href="dashboard.html" class="flex items-center space-x-2 p-2 rounded-md bg-accent-green text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="reports.html" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                    <span>Reports</span>
+                </a>
+            </nav>
+        </aside>
+
+        <div class="flex-1 flex flex-col overflow-hidden">
+            
+            <header class="bg-white/80 backdrop-blur-md shadow-sm p-4 flex justify-between items-center m-6 rounded-lg">
+                <h1 class="text-2xl font-semibold text-dark-text">Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">EN</span>
+                    <img class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/150" alt="User Avatar">
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-6 pb-6">
+                
+                <div id="status-box-main" class="p-6 rounded-lg shadow-lg text-white text-center mb-6 bg-gray-500/80 backdrop-blur-md">
+                    <h1 id="overall-status-text" class="text-3xl font-bold">Menunggu Data...</h1>
+                    <p id="overall-recommendation" class="text-lg">Harap tunggu sensor terhubung.</p>
+                    <p id="drinkability-status" class="text-sm opacity-80 mt-2"></p>
+                </div>
+
+                <h2 class="text-xl font-semibold text-dark-text mb-4">Analisis Sensor Realtime</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    
+                    <div id="tds-box" class="bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 border-gray-300">
+                        <h2 class="text-lg font-semibold text-gray-600 mb-4">TDS (Indikator Logam Terlarut)</h2>
+                        <div class="flex items-center justify-around gap-4 mt-2">
+                            <div class="text-center flex-1">
+                                <p id="tds-value" class="text-6xl font-bold text-gray-800">...</p>
+                                <span class="text-2xl text-gray-500">ppm</span>
+                                <p id="tds-status-text" class="font-bold text-xl mt-2 text-gray-600">Menunggu</p>
+                            </div>
+                            <div class="h-48 w-16 bg-gray-200 rounded-full flex flex-col-reverse overflow-hidden">
+                                <div id="tds-gauge" class="w-full rounded-full" style="height: 0%; transition: height 0.5s, background-color 0.5s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="ntu-box" class="bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 border-gray-300">
+                        <h2 class="text-lg font-semibold text-gray-600 mb-4">Kekeruhan (Indikator Patogen)</h2>
+                        <div class="flex items-center justify-around gap-4 mt-2">
+                            <div class="text-center flex-1">
+                                <p id="ntu-value" class="text-6xl font-bold text-gray-800">...</p>
+                                <span class="text-2xl text-gray-500">NTU</span>
+                                <p id="ntu-status-text" class="font-bold text-xl mt-2 text-gray-600">Menunggu</p>
+                            </div>
+                            <div class="h-48 w-16 bg-gray-200 rounded-full flex flex-col-reverse overflow-hidden">
+                                <div id="ntu-gauge" class="w-full rounded-full" style="height: 0%; transition: height 0.5s, background-color 0.5s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-xl font-semibold text-dark-text mb-4">Simpan Catatan Manual</h2>
+                <div class="bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md">
+                    <button id="btn-buka-modal" class="flex w-full justify-center items-center bg-accent-green text-white px-4 py-3 rounded-lg shadow font-bold hover:bg-accent-green/80">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                        Simpan Catatan (Data & Lokasi)
+                    </button>
+                    <p class="text-gray-500 text-sm mt-2 text-center">Klik untuk membuka panel pencatatan data manual.</p>
+                </div>
+
+                <p id="timestamp" class="text-sm text-dark-text/70 text-center mt-6">Belum ada data...</p>
+            </main>
+        </div>
+    </div>
+
+    <div id="modal-simpan" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white w-full max-w-lg rounded-lg shadow-xl p-6 transition-all transform opacity-0 scale-95" id="modal-content">
+            <h2 class="text-2xl font-bold text-dark-text mb-4">Simpan Catatan Log Baru</h2>
+            
+            <div class="mb-4 bg-gray-100 p-4 rounded-lg">
+                <h3 class="font-semibold text-gray-700">Data Sensor Saat Ini:</h3>
+                <p id="modal-data-display" class="text-gray-600">TDS: ... | NTU: ...</p>
+                <p id="modal-tanggal-display" class="text-gray-600">Tanggal: ...</p>
+            </div>
+
+            <div class="mb-4">
+                <button id="btn-modal-get-location" class="flex w-full justify-center items-center bg-accent-blue text-white px-4 py-2 rounded-lg shadow hover:bg-accent-blue/80">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    Dapatkan Lokasi GPS
+                </button>
+                <p id="modal-location-display" class="text-gray-600 mt-2 font-semibold text-sm">
+                    Lokasi: <span class="text-gray-500 font-normal">Belum diatur.</span>
+                </p>
+            </div>
+
+            <div class="mb-6">
+                <label for="modal-deskripsi" class="block text-sm font-medium text-gray-700">Deskripsi</label>
+                <textarea id="modal-deskripsi" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-blue focus:ring focus:ring-accent-blue focus:ring-opacity-50" placeholder="Cth: Sampel air di depan Lab..."></textarea>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button id="btn-modal-batal" class="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
+                <button id="btn-modal-simpan" class="px-5 py-2 bg-accent-green text-white rounded-lg font-semibold shadow hover:bg-accent-green/80 disabled:opacity-50 disabled:cursor-not-allowed" disabled>Simpan</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <script>
+        // 4a. --- TEMPELKAN FIREBASE CONFIG ANDA DI SINI ---
+        const firebaseConfig = {
+            apiKey: "AIzaSy...ANDA",
+            authDomain: "proyek-anda.firebaseapp.com",
+            databaseURL: "https://biosensoralga-default-rtdb.asia-southeast1.firebasedatabase.app/", // Pastikan URL ini benar
+            projectId: "proyek-anda",
+            storageBucket: "proyek-anda.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123"
+        };
+        // ---------------------------------------------------
+
+        // 4b. Inisialisasi Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();  // Untuk data realtime
+        const db = firebase.firestore();      // Untuk menyimpan log
+
+        // 4c. Referensi Elemen (Bagian Utama)
+        const tdsValueEl = document.getElementById('tds-value');
+        const tdsStatusEl = document.getElementById('tds-status-text');
+        const tdsGaugeEl = document.getElementById('tds-gauge');
+        const tdsBoxEl = document.getElementById('tds-box');
+        const ntuValueEl = document.getElementById('ntu-value');
+        const ntuStatusEl = document.getElementById('ntu-status-text');
+        const ntuGaugeEl = document.getElementById('ntu-gauge');
+        const ntuBoxEl = document.getElementById('ntu-box');
+        const statusBoxEl = document.getElementById('status-box-main');
+        const overallStatusEl = document.getElementById('overall-status-text');
+        const overallRecEl = document.getElementById('overall-recommendation');
+        const drinkabilityEl = document.getElementById('drinkability-status');
+        const timestampEl = document.getElementById('timestamp');
+        
+        // Referensi Elemen Modal
+        const btnBukaModal = document.getElementById('btn-buka-modal');
+        const modalSimpan = document.getElementById('modal-simpan');
+        const modalContent = document.getElementById('modal-content');
+        const btnModalBatal = document.getElementById('btn-modal-batal');
+        const btnModalGetLocation = document.getElementById('btn-modal-get-location');
+        const btnModalSimpan = document.getElementById('btn-modal-simpan');
+        const modalDataDisplay = document.getElementById('modal-data-display');
+        const modalTanggalDisplay = document.getElementById('modal-tanggal-display');
+        const modalLocationDisplay = document.getElementById('modal-location-display');
+        const modalDeskripsi = document.getElementById('modal-deskripsi');
+
+        // Variabel Global untuk menyimpan data
+        let currentGpsLocation = null;
+        let currentRealtimeData = null;
+
+        // 4d. Listener Firebase (Realtime)
+        const liveDataRef = database.ref('/data_sensor_realtime');
+        liveDataRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return; 
+
+            // Simpan data terbaru ke variabel global
+            currentRealtimeData = data; 
+            
+            // --- Logika untuk memperbarui gauge dan status ---
+            const tdsValue = data.tds_ppm;
+            const ntuValue = data.turbidity_ntu;
+            
+            let tdsClass = '', tdsGaugeClass = '', tdsTextClass = '';
+            let tdsStatus = '';
+            let ntuClass = '', ntuGaugeClass = '', ntuTextClass = '';
+            let ntuStatus = '';
+            let overallClass = '', overallStatus = '', overallRec = '', drinkabilityStatus = '';
+
+            // Proses TDS
+            let tdsGauge = (tdsValue / 1000) * 100;
+            if (tdsGauge > 100) tdsGauge = 100;
+            if (tdsValue < 300) {
+                tdsClass = 'card_aman'; tdsGaugeClass = 'gauge_aman'; tdsTextClass = 'text_aman';
+                tdsStatus = 'Risiko Rendah';
+            } else if (tdsValue < 500) {
+                tdsClass = 'card_cukup'; tdsGaugeClass = 'gauge_cukup'; tdsTextClass = 'text_cukup';
+                tdsStatus = 'Risiko Moderat';
+            } else {
+                tdsClass = 'card_bahaya'; tdsGaugeClass = 'gauge_bahaya'; tdsTextClass = 'text_bahaya';
+                tdsStatus = 'Risiko Tinggi';
+            }
+
+            // Proses Turbidity
+            let ntuGauge = (ntuValue / 10) * 100;
+            if (ntuGauge > 100) ntuGauge = 100;
+            if (ntuValue < 1) {
+                ntuClass = 'card_aman'; ntuGaugeClass = 'gauge_aman'; ntuTextClass = 'text_aman';
+                ntuStatus = 'Jernih (Risiko Rendah)';
+            } else if (ntuValue < 5) {
+                ntuClass = 'card_cukup'; ntuGaugeClass = 'gauge_cukup'; ntuTextClass = 'text_cukup';
+                ntuStatus = 'Agak Keruh (Risiko Moderat)';
+            } else {
+                ntuClass = 'card_bahaya'; ntuGaugeClass = 'gauge_bahaya'; ntuTextClass = 'text_bahaya';
+                ntuStatus = 'Sangat Keruh (Risiko Tinggi)';
+            }
+
+            // Proses Status Keseluruhan
+            if (tdsClass === 'card_bahaya') {
+                overallClass = 'status_bahaya'; overallStatus = 'RISIKO LOGAM TINGGI';
+                overallRec = 'TDS sangat tinggi. Sangat disarankan uji lab untuk logam berat!';
+            } else if (tdsClass === 'card_cukup') {
+                overallClass = 'status_cukup'; overallStatus = 'RISIKO LOGAM MODERAT';
+                overallRec = 'TDS cukup tinggi. Ada kemungkinan mengandung logam.';
+            } else {
+                overallClass = 'status_aman'; overallStatus = 'RISIKO LOGAM RENDAH';
+                overallRec = 'TDS rendah, kemungkinan logam berat terlarut rendah.';
+            }
+
+            // Proses Kelayakan Minum
+            if (tdsClass === 'card_bahaya' || ntuClass === 'card_bahaya') {
+                drinkabilityStatus = 'Kelayakan Minum: SANGAT TIDAK DISARANKAN';
+            } else if (tdsClass === 'card_cukup' || ntuClass === 'card_cukup') {
+                drinkabilityStatus = 'Kelayakan Minum: Disarankan dimasak / filtrasi dahulu';
+            } else {
+                drinkabilityStatus = 'Kelayakan Minum: Aman (sesuai standar TDS & Kekeruhan)';
+            }
+
+            // Update Tampilan (DOM)
+            tdsValueEl.innerText = tdsValue.toFixed(0);
+            tdsStatusEl.innerText = tdsStatus;
+            tdsBoxEl.className = 'bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 ' + tdsClass;
+            tdsGaugeEl.className = 'w-full rounded-full ' + tdsGaugeClass;
+            tdsGaugeEl.style.height = tdsGauge + '%';
+            tdsValueEl.className = 'text-6xl font-bold ' + tdsTextClass;
+            tdsStatusEl.className = 'font-bold text-xl mt-2 ' + tdsTextClass;
+            ntuValueEl.innerText = ntuValue.toFixed(0);
+            ntuStatusEl.innerText = ntuStatus;
+            ntuBoxEl.className = 'bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 ' + ntuClass;
+            ntuGaugeEl.className = 'w-full rounded-full ' + ntuGaugeClass;
+            ntuGaugeEl.style.height = ntuGauge + '%';
+            ntuValueEl.className = 'text-6xl font-bold ' + ntuTextClass;
+            ntuStatusEl.className = 'font-bold text-xl mt-2 ' + ntuTextClass;
+            statusBoxEl.className = 'p-6 rounded-lg shadow-lg text-white text-center mb-6 ' + overallClass;
+            overallStatusEl.innerText = overallStatus;
+            overallRecEl.innerText = overallRec;
+            drinkabilityEl.innerText = drinkabilityStatus;
+            const timestamp = new Date(data.timestamp);
+            timestampEl.innerText = "Update Terakhir: " + timestamp.toLocaleString('id-ID');
+        
+        });
+
+        // --- 5. FUNGSI-FUNGSI BARU UNTUK MODAL ---
+
+        function checkModalSaveButtonState() {
+            if (currentGpsLocation && modalDeskripsi.value.trim() !== "") {
+                btnModalSimpan.disabled = false;
+            } else {
+                btnModalSimpan.disabled = true;
+            }
+        }
+
+        function openSimpanModal() {
+            if (!currentRealtimeData) {
+                alert("Belum ada data realtime. Tunggu sensor mengirim data.");
+                return;
+            }
+            currentGpsLocation = null;
+            modalDeskripsi.value = "";
+            modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-gray-500 font-normal">Belum diatur.</span>';
+            btnModalSimpan.disabled = true;
+
+            modalDataDisplay.innerText = `TDS: ${currentRealtimeData.tds_ppm.toFixed(0)} ppm | NTU: ${currentRealtimeData.turbidity_ntu.toFixed(0)} NTU`;
+            modalTanggalDisplay.innerText = "Tanggal: " + new Date().toLocaleString('id-ID');
+            
+            modalSimpan.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('opacity-0', 'scale-95');
+                modalContent.classList.add('opacity-100', 'scale-100');
+            }, 10);
+        }
+
+        function closeSimpanModal() {
+            modalContent.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => {
+                modalSimpan.classList.add('hidden');
+            }, 200);
+        }
+
+        function handleModalGetLocationClick() {
+            if (!navigator.geolocation) {
+                modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-red-500">Browser tidak mendukung Geolocation.</span>';
+                return;
+            }
+
+            btnModalGetLocation.disabled = true;
+            modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-blue-500">Mencari lokasi Anda...</span>';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentGpsLocation = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    };
+                    modalLocationDisplay.innerHTML = `Lokasi: <span class="text-green-600 font-bold">${currentGpsLocation.lat.toFixed(4)}, ${currentGpsLocation.lon.toFixed(4)}</span> (Tersimpan)`;
+                    btnModalGetLocation.disabled = false;
+                    checkModalSaveButtonState();
+                },
+                (error) => {
+                    currentGpsLocation = null;
+                    modalLocationDisplay.innerHTML = `Lokasi: <span class="text-red-500">Gagal: ${error.message}.</span>`;
+                    btnModalGetLocation.disabled = false;
+                    checkModalSaveButtonState();
+                }
+            );
+        }
+
+        function handleModalSimpanClick() {
+            const deskripsi = modalDeskripsi.value.trim();
+
+            if (!currentGpsLocation || !currentRealtimeData || deskripsi === "") {
+                alert("Gagal. Pastikan lokasi sudah didapat dan deskripsi sudah diisi.");
+                return;
+            }
+
+            btnModalSimpan.disabled = true;
+            btnModalSimpan.innerText = "Menyimpan...";
+            
+            const logData = {
+                tds_ppm: currentRealtimeData.tds_ppm,
+                turbidity_ntu: currentRealtimeData.turbidity_ntu,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(), // Timestamp Firestore
+                latitude: currentGpsLocation.lat,
+                longitude: currentGpsLocation.lon,
+                deskripsi: deskripsi
+            };
+            
+            // Simpan ke Firestore
+            db.collection("sensor_logs").add(logData)
+            .then((docRef) => {
+                console.log("Log tersimpan dengan ID: ", docRef.id);
+                alert("Sukses! Data log baru telah disimpan.");
+                btnModalSimpan.innerText = "Simpan";
+                closeSimpanModal();
+            })
+            .catch((error) => {
+                console.error("Gagal menyimpan ke Firestore: ", error);
+                alert("Gagal menyimpan data ke Firebase.");
+                btnModalSimpan.innerText = "Simpan";
+                btnModalSimpan.disabled = false;
+            });
+        }
+        
+        // --- 6. EVENT LISTENERS ---
+        btnBukaModal.addEventListener('click', openSimpanModal);
+        btnModalBatal.addEventListener('click', closeSimpanModal);
+        btnModalGetLocation.addEventListener('click', handleModalGetLocationClick);
+        btnModalSimpan.addEventListener('click', handleModalSimpanClick);
+        modalDeskripsi.addEventListener('input', checkModalSaveButtonState);
+
+    </script>
+</body>
+</html>
