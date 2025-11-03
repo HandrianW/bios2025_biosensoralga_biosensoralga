@@ -42,24 +42,30 @@
     </style>
     
     <style>
-        /* Mengatur tinggi untuk div peta di dalam modal */
         #map-picker {
-            height: 300px; /* Anda bisa sesuaikan tingginya */
-            border-radius: 0.5rem; /* rounded-lg */
-            border: 1px solid #D1D5DB; /* border-gray-300 */
-            z-index: 10; /* Memastikan peta di atas elemen lain */
+            height: 300px;
+            border-radius: 0.5rem;
+            border: 1px solid #D1D5DB;
+            z-index: 10;
         }
     </style>
 </head>
 
 <body class="bg-gradient-to-br from-primary-light via-primary-blue to-primary-green font-sans">
     
-    <div class="flex h-screen bg-transparent">
-        <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col">
+    <div class="relative md:flex h-screen bg-transparent">
+        
+        <aside id="sidebar" class="w-64 bg-gray-900 text-gray-200 flex flex-col fixed inset-y-0 left-0 z-50 
+                             -translate-x-full transition-transform duration-300 ease-in-out 
+                             md:relative md:translate-x-0">
             <div class="p-4 text-2xl font-bold text-white border-b border-gray-700">
-                Sensor Logam
+                Sensor Air
             </div>
             <nav class="flex-1 p-4 space-y-2">
+                <a href="index.html" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2l-7 7-7-7M5 10v10a1 1 0 001 1h3m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m0 0h3a1 1 0 001-1V10m-2 11l-2-2" /></svg>
+                    <span>Home</span>
+                </a>
                 <a href="dashboard.html" class="flex items-center space-x-2 p-2 rounded-md bg-accent-green text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /></svg>
                     <span>Dashboard</span>
@@ -71,17 +77,26 @@
             </nav>
         </aside>
 
+        <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/50 z-40 md:hidden"></div>
+
         <div class="flex-1 flex flex-col overflow-hidden">
             
-            <header class="bg-white/80 backdrop-blur-md shadow-sm p-4 flex justify-between items-center m-6 rounded-lg">
-                <h1 class="text-2xl font-semibold text-dark-text">Dashboard</h1>
+            <header class="bg-white/80 backdrop-blur-md shadow-sm p-4 flex justify-between items-center md:m-6 md:rounded-lg">
+                 <div class="flex items-center">
+                    <button id="btn-menu-open" class="text-dark-text p-2 rounded-md md:hidden mr-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                    <h1 class="text-2xl font-semibold text-dark-text">Dashboard</h1>
+                </div>
                 <div class="flex items-center space-x-4">
                     <span class="text-gray-600">EN</span>
                     <img class="h-10 w-10 rounded-full object-cover" src="https://via.placeholder.com/150" alt="User Avatar">
                 </div>
             </header>
 
-            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-6 pb-6">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-transparent p-4 md:p-6">
                 
                 <div id="status-box-main" class="p-6 rounded-lg shadow-lg text-white text-center mb-6 bg-gray-500/80 backdrop-blur-md">
                     <h1 id="overall-status-text" class="text-3xl font-bold">Menunggu Data...</h1>
@@ -146,15 +161,15 @@
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Lokasi</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi (Opsional)</label>
                 <div id="map-picker"></div>
                 <p id="modal-location-display" class="text-gray-600 mt-2 font-semibold text-sm">
-                    Lokasi: <span class="text-gray-500 font-normal">Klik pada peta untuk memilih lokasi.</span>
+                    Lokasi: <span class="text-gray-500 font-normal">Opsional. Klik pada peta untuk memilih lokasi.</span>
                 </p>
             </div>
 
             <div class="mb-6">
-                <label for="modal-deskripsi" class="block text-sm font-medium text-gray-700">Deskripsi</label>
+                <label for="modal-deskripsi" class="block text-sm font-medium text-gray-700">Deskripsi (Wajib)</label>
                 <textarea id="modal-deskripsi" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-blue focus:ring focus:ring-accent-blue focus:ring-opacity-50" placeholder="Cth: Sampel air di depan Lab..."></textarea>
             </div>
 
@@ -169,7 +184,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
     <script src="./js/firebase-config.js"></script>
+    
     <script src="./js/dashboard.js"></script>
+
+    <script src="./js/main.js"></script>
 </body>
 </html>
