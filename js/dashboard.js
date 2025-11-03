@@ -2,11 +2,9 @@
  * public/js/dashboard.js
  * Logika utama untuk halaman dashboard (dashboard.html)
  *
- * Fitur:
- * - Menampilkan data realtime dari RTDB.
- * - Membuka modal untuk menyimpan log ke Firestore.
- * - Peta Leaflet untuk memilih lokasi (opsional).
- * - Deskripsi (wajib) untuk menyimpan log.
+ * FITUR TAMBAHAN:
+ * - Data Turbiditas dimanipulasi secara lokal di browser
+ * untuk tujuan testing (naik-turun setiap 1 menit).
  */
 
 // 4b. Inisialisasi Firebase
@@ -55,11 +53,39 @@ liveDataRef.on('value', (snapshot) => {
     if (!data) return; 
 
     // Simpan data terbaru ke variabel global
+    // Kita simpan data *sebelum* dimanipulasi
     currentRealtimeData = data; 
     
     // --- (Logika untuk memperbarui gauge dan status) ---
+
+    // =======================================================
+    // --- MULAI BLOK SIMULASI DATA (UNTUK TESTING) ---
+    // =======================================================
+    // Kita ambil data TDS asli dari ESP32
     const tdsValue = data.tds_ppm;
-    const ntuValue = data.turbidity_ntu;
+    
+    // Kita BUANG data turbidity_ntu yang asli dan kita buat data palsu
+    let ntuValue;
+    // Dapatkan waktu saat ini di browser dalam siklus 2 menit (120,000 milidetik)
+    const timeInCycle = new Date().getTime() % 120000; 
+
+    if (timeInCycle < 60000) {
+        // MENIT PERTAMA: Beri nilai RENDAH (DI BAWAH 1)
+        // Angka acak antara 0.1 dan 0.9
+        ntuValue = (Math.random() * (0.9 - 0.1) + 0.1);
+    } else {
+        // MENIT KEDUA: Beri nilai TINGGI (DI ATAS 1)
+        // Angka acak antara 1.1 dan 4.9 (untuk menguji status "Cukup")
+        ntuValue = (Math.random() * (4.9 - 1.1) + 1.1);
+    }
+    
+    // Simpan juga data simulasi ke data 'realtime'
+    // agar jika user menekan "Simpan", data simulasilah yang tersimpan.
+    currentRealtimeData.turbidity_ntu = ntuValue;
+    
+    // =======================================================
+    // --- AKHIR BLOK SIMULASI DATA ---
+    // =======================================================
     
     let tdsClass = '', tdsGaugeClass = '', tdsTextClass = '';
     let tdsStatus = '';
@@ -67,7 +93,7 @@ liveDataRef.on('value', (snapshot) => {
     let ntuStatus = '';
     let overallClass = '', overallStatus = '', overallRec = '', drinkabilityStatus = '';
 
-    // Proses TDS
+    // Proses TDS (Menggunakan data asli)
     let tdsGauge = (tdsValue / 1000) * 100;
     if (tdsGauge > 100) tdsGauge = 100;
     if (tdsValue < 300) {
@@ -81,8 +107,8 @@ liveDataRef.on('value', (snapshot) => {
         tdsStatus = 'Risiko Tinggi';
     }
 
-    // Proses Turbidity
-    let ntuGauge = (ntuValue / 10) * 100;
+    // Proses Turbidity (Menggunakan data SIMULASI)
+    let ntuGauge = (ntuValue / 10) * 100; // Gauge max diset ke 10
     if (ntuGauge > 100) ntuGauge = 100;
     if (ntuValue < 1) {
         ntuClass = 'card_aman'; ntuGaugeClass = 'gauge_aman'; ntuTextClass = 'text_aman';
@@ -124,13 +150,16 @@ liveDataRef.on('value', (snapshot) => {
     tdsGaugeEl.style.height = tdsGauge + '%';
     tdsValueEl.className = 'text-6xl font-bold ' + tdsTextClass;
     tdsStatusEl.className = 'font-bold text-xl mt-2 ' + tdsTextClass;
-    ntuValueEl.innerText = ntuValue.toFixed(0);
+    
+    // Update Turbidity dengan nilai simulasi
+    ntuValueEl.innerText = ntuValue.toFixed(1); // Tampilkan 1 desimal agar 0.x terlihat
     ntuStatusEl.innerText = ntuStatus;
     ntuBoxEl.className = 'bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 ' + ntuClass;
     ntuGaugeEl.className = 'w-full rounded-full ' + ntuGaugeClass;
     ntuGaugeEl.style.height = ntuGauge + '%';
     ntuValueEl.className = 'text-6xl font-bold ' + ntuTextClass;
     ntuStatusEl.className = 'font-bold text-xl mt-2 ' + ntuTextClass;
+    
     statusBoxEl.className = 'p-6 rounded-lg shadow-lg text-white text-center mb-6 ' + overallClass;
     overallStatusEl.innerText = overallStatus;
     overallRecEl.innerText = overallRec;
@@ -167,8 +196,8 @@ function openSimpanModal() {
     modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-gray-500 font-normal">Opsional. Klik peta untuk memilih.</span>';
     btnModalSimpan.disabled = true; // Tombol nonaktif sampai deskripsi diisi
 
-    // Isi data sensor & tanggal
-    modalDataDisplay.innerText = `TDS: ${currentRealtimeData.tds_ppm.toFixed(0)} ppm | NTU: ${currentRealtimeData.turbidity_ntu.toFixed(0)} NTU`;
+    // Isi data sensor & tanggal (Data NTU akan terisi data simulasi)
+    modalDataDisplay.innerText = `TDS: ${currentRealtimeData.tds_ppm.toFixed(0)} ppm | NTU: ${currentRealtimeData.turbidity_ntu.toFixed(1)} NTU`;
     modalTanggalDisplay.innerText = "Tanggal: " + new Date().toLocaleString('id-ID');
     
     // Tampilkan modal
@@ -193,7 +222,10 @@ function initMap() {
         mapMarker = null;
     }
     setTimeout(() => {
-        mapInstance.invalidateSize();
+        // Penting: Peta harus di-refresh ukurannya setelah modal muncul
+        if (mapInstance) {
+            mapInstance.invalidateSize();
+        }
     }, 100);
 }
 
@@ -230,10 +262,9 @@ function handleModalSimpanClick() {
     // Siapkan data lengkap untuk disimpan
     const logData = {
         tds_ppm: currentRealtimeData.tds_ppm,
-        turbidity_ntu: currentRealtimeData.turbidity_ntu,
+        turbidity_ntu: currentRealtimeData.turbidity_ntu, // Ini akan berisi data simulasi
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         deskripsi: deskripsi,
-        // Tambahkan lokasi HANYA JIKA ada (opsional), jika tidak, simpan sebagai null
         latitude: currentGpsLocation ? currentGpsLocation.lat : null,
         longitude: currentGpsLocation ? currentGpsLocation.lon : null
     };
@@ -264,3 +295,4 @@ if (btnBukaModal) {
     // Cek tombol simpan setiap kali deskripsi diketik
     modalDeskripsi.addEventListener('input', checkModalSaveButtonState);
 }
+
