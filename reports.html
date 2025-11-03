@@ -30,13 +30,9 @@
     <div class="flex h-screen bg-transparent">
         <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col">
             <div class="p-4 text-2xl font-bold text-white border-b border-gray-700">
-                Sensor Air
+                Sensor Logam
             </div>
             <nav class="flex-1 p-4 space-y-2">
-                <a href="index.html" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2l-7 7-7-7M5 10v10a1 1 0 001 1h3m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m0 0h3a1 1 0 001-1V10m-2 11l-2-2" /></svg>
-                    <span>Home</span>
-                </a>
                 <a href="dashboard.html" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /></svg>
                     <span>Dashboard</span>
@@ -60,12 +56,6 @@
 
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-6 pb-6">
                 
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <button id="btn-24h" class="bg-accent-green/80 text-white px-4 py-2 rounded-lg shadow hover:bg-accent-green">24 Jam Terakhir</button>
-                    <button id="btn-7d" class="bg-white/80 text-dark-text px-4 py-2 rounded-lg shadow hover:bg-white">7 Hari Terakhir</button>
-                    <button id="btn-30d" class="bg-white/80 text-dark-text px-4 py-2 rounded-lg shadow hover:bg-white">30 Hari Terakhir</button>
-                </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <div class="bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md">
                         <h3 class="text-gray-600">Rata-rata TDS (ppm)</h3>
@@ -82,12 +72,12 @@
                 </div>
 
                 <div class="bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md mb-6">
-                    <h3 class="text-lg font-semibold text-dark-text mb-4">Grafik Tren Kualitas Air</h3>
+                    <h3 class="text-lg font-semibold text-dark-text mb-4">Grafik Tren Kualitas Air (Semua Data)</h3>
                     <canvas id="historyChart"></canvas>
                 </div>
 
                 <div class="bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold text-dark-text mb-4">Data Log Tersimpan</h3>
+                    <h3 class="text-lg font-semibold text-dark-text mb-4">Semua Data Log Tersimpan</h3>
                     <div class="overflow-x-auto">
                         <table class="min-w-full bg-white/50" id="data-table">
                             <thead class="bg-gray-800 text-white">
@@ -113,196 +103,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <script>
-        // 4a. --- TEMPELKAN FIREBASE CONFIG ANDA DI SINI ---
-        const firebaseConfig = {
-            apiKey: "AIzaSy...ANDA",
-            authDomain: "proyek-anda.firebaseapp.com",
-            databaseURL: "https://biosensoralga-default-rtdb.asia-southeast1.firebasedatabase.app/",
-            projectId: "proyek-anda",
-            storageBucket: "proyek-anda.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123"
-        };
-        // ---------------------------------------------------
-
-        // 4b. Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); // Hanya perlu Firestore
-        
-        // 4c. Variabel Global & Inisialisasi Chart
-        let myChart; 
-        let currentData = []; 
-        const ctx = document.getElementById('historyChart').getContext('2d');
-        myChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [], 
-                datasets: [
-                    {
-                        label: 'TDS (ppm)', data: [],
-                        borderColor: 'rgb(37, 99, 235)', // accent-blue
-                        backgroundColor: 'rgba(37, 99, 235, 0.5)',
-                        yAxisID: 'yTDS',
-                    },
-                    {
-                        label: 'Turbidity (NTU)', data: [],
-                        borderColor: 'rgb(234, 179, 8)', // yellow-500
-                        backgroundColor: 'rgba(234, 179, 8, 0.5)',
-                        yAxisID: 'yNTU',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: { type: 'time', time: { unit: 'hour', tooltipFormat: 'PP pp' }, title: { display: true, text: 'Waktu' } },
-                    yTDS: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'TDS (ppm)' } },
-                    yNTU: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Turbidity (NTU)' }, grid: { drawOnChartArea: false } }
-                }
-            }
-        });
-
-        // 4e. Fungsi Utama (Membaca dari Firestore)
-        function fetchReportData(hours) {
-            const startTime = new Date(Date.now() - (hours * 60 * 60 * 1000));
-            document.querySelector("#data-table tbody").innerHTML = '<tr><td colspan="5" class="text-center p-4">Memuat data...</td></tr>';
-            
-            db.collection("sensor_logs")
-              .where("timestamp", ">=", startTime)
-              .orderBy("timestamp", "desc")
-              .get()
-              .then((querySnapshot) => {
-                
-                if (querySnapshot.empty) {
-                    console.log("Tidak ada data log ditemukan.");
-                    document.querySelector("#data-table tbody").innerHTML = '<tr><td colspan="5" class="text-center p-4">Tidak ada data ditemukan.</td></tr>';
-                    updateStats([]);
-                    updateChart([]);
-                    updateTable([]);
-                    return;
-                }
-                
-                currentData = []; 
-                
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const timestampInMillis = data.timestamp ? data.timestamp.toMillis() : Date.now();
-                    
-                    currentData.push({
-                        key: doc.id,
-                        ts: timestampInMillis,
-                        tds: data.tds_ppm,
-                        ntu: data.turbidity_ntu,
-                        latitude: data.latitude,
-                        longitude: data.longitude,
-                        deskripsi: data.deskripsi
-                    });
-                });
-                
-                currentData.sort((a, b) => a.ts - b.ts);
-                
-                updateStats(currentData);
-                updateChart(currentData);
-                updateTable(currentData);
-                
-            })
-            .catch((error) => {
-                console.error("Gagal mengambil data log: ", error);
-                document.querySelector("#data-table tbody").innerHTML = '<tr><td colspan="5" class="text-center p-4">Gagal memuat data.</td></tr>';
-            });
-        }
-        
-        // --- updateStats dan updateChart ---
-        function updateStats(data) {
-            if (data.length === 0) {
-                 document.getElementById('avg-tds').innerText = 'N/A';
-                 document.getElementById('max-tds').innerText = 'N/A';
-                 document.getElementById('avg-ntu').innerText = 'N/A';
-                return;
-            }
-            let totalTDS = 0, maxTDS = data[0].tds, totalNTU = 0;
-            data.forEach(d => {
-                totalTDS += d.tds;
-                totalNTU += d.ntu;
-                if (d.tds > maxTDS) maxTDS = d.tds;
-            });
-            document.getElementById('avg-tds').innerText = (totalTDS / data.length).toFixed(0);
-            document.getElementById('max-tds').innerText = maxTDS.toFixed(0);
-            document.getElementById('avg-ntu').innerText = (totalNTU / data.length).toFixed(1);
-        }
-        function updateChart(data) {
-            myChart.data.labels = data.map(d => d.ts);
-            myChart.data.datasets[0].data = data.map(d => d.tds);
-            myChart.data.datasets[1].data = data.map(d => d.ntu);
-            myChart.update();
-        }
-        
-        // --- updateTable (Read-Only) ---
-        function updateTable(data) {
-            const tableBody = document.querySelector("#data-table tbody");
-            tableBody.innerHTML = "";
-            
-            if (data.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Tidak ada data ditemukan.</td></tr>';
-                return;
-            }
-            
-            data.slice().reverse().forEach(d => {
-                const date = d.ts ? new Date(d.ts).toLocaleString('id-ID') : 'Menunggu...';
-                let lokasiHtml = d.latitude ? `${d.latitude.toFixed(4)}, ${d.longitude.toFixed(4)}` : 'N/A';
-                let deskripsiHtml = d.deskripsi || 'N/A';
-
-                const row = `
-                    <tr class="border-b border-gray-200/50 hover:bg-gray-100/50">
-                        <td class="py-2 px-4">${date}</td>
-                        <td class="py-2 px-4 text-center">${d.tds.toFixed(0)}</td>
-                        <td class="py-2 px-4 text-center">${d.ntu.toFixed(1)}</td>
-                        <td class="py-2 px-4">${lokasiHtml}</td>
-                        <td class="py-2 px-4">${deskripsiHtml}</td>
-                    </tr>
-                `;
-                tableBody.innerHTML += row;
-            });
-        }
-        
-        // 4g. Event Listeners (Tombol Filter Waktu)
-        const btn24h = document.getElementById('btn-24h');
-        const btn7d = document.getElementById('btn-7d');
-        const btn30d = document.getElementById('btn-30d');
-        
-        btn24h.addEventListener('click', () => {
-            fetchReportData(24);
-            btn24h.classList.replace('bg-white/80', 'bg-accent-green/80');
-            btn24h.classList.add('text-white');
-            btn7d.classList.replace('bg-accent-green/80', 'bg-white/80');
-            btn7d.classList.remove('text-white');
-            btn30d.classList.replace('bg-accent-green/80', 'bg-white/80');
-            btn30d.classList.remove('text-white');
-        });
-        btn7d.addEventListener('click', () => {
-            fetchReportData(24 * 7);
-            btn24h.classList.replace('bg-accent-green/80', 'bg-white/80');
-            btn24h.classList.remove('text-white');
-            btn7d.classList.replace('bg-white/80', 'bg-accent-green/80');
-            btn7d.classList.add('text-white');
-            btn30d.classList.replace('bg-accent-green/80', 'bg-white/80');
-            btn30d.classList.remove('text-white');
-        });
-        btn30d.addEventListener('click', () => {
-            fetchReportData(24 * 30);
-            btn24h.classList.replace('bg-accent-green/80', 'bg-white/80');
-            btn24h.classList.remove('text-white');
-            btn7d.classList.replace('bg-accent-green/80', 'bg-white/80');
-            btn7d.classList.remove('text-white');
-            btn30d.classList.replace('bg-white/80', 'bg-accent-green/80');
-            btn30d.classList.add('text-white');
-        });
-
-        // Muat data 24 jam pertama kali
-        fetchReportData(24);
-
-    </script>
+    <script src="./js/firebase-config.js"></script>
+    <script src="./utils/format.js"></script> 
+    <script src="./js/reports.js"></script>
 </body>
 </html>

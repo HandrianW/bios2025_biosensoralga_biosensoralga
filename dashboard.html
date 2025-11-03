@@ -7,6 +7,9 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -37,6 +40,16 @@
         .text_bahaya { @apply text-red-600; }
         .gauge_bahaya { @apply bg-red-600; }
     </style>
+    
+    <style>
+        /* Mengatur tinggi untuk div peta di dalam modal */
+        #map-picker {
+            height: 300px; /* Anda bisa sesuaikan tingginya */
+            border-radius: 0.5rem; /* rounded-lg */
+            border: 1px solid #D1D5DB; /* border-gray-300 */
+            z-index: 10; /* Memastikan peta di atas elemen lain */
+        }
+    </style>
 </head>
 
 <body class="bg-gradient-to-br from-primary-light via-primary-blue to-primary-green font-sans">
@@ -44,13 +57,9 @@
     <div class="flex h-screen bg-transparent">
         <aside class="w-64 bg-gray-900 text-gray-200 flex flex-col">
             <div class="p-4 text-2xl font-bold text-white border-b border-gray-700">
-                Sensor Air
+                Sensor Logam
             </div>
             <nav class="flex-1 p-4 space-y-2">
-                <a href="index.html" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2l-7 7-7-7M5 10v10a1 1 0 001 1h3m0 0v-5a1 1 0 011-1h2a1 1 0 011 1v5m0 0h3a1 1 0 001-1V10m-2 11l-2-2" /></svg>
-                    <span>Home</span>
-                </a>
                 <a href="dashboard.html" class="flex items-center space-x-2 p-2 rounded-md bg-accent-green text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /></svg>
                     <span>Dashboard</span>
@@ -137,12 +146,10 @@
             </div>
 
             <div class="mb-4">
-                <button id="btn-modal-get-location" class="flex w-full justify-center items-center bg-accent-blue text-white px-4 py-2 rounded-lg shadow hover:bg-accent-blue/80">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Dapatkan Lokasi GPS
-                </button>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Lokasi</label>
+                <div id="map-picker"></div>
                 <p id="modal-location-display" class="text-gray-600 mt-2 font-semibold text-sm">
-                    Lokasi: <span class="text-gray-500 font-normal">Belum diatur.</span>
+                    Lokasi: <span class="text-gray-500 font-normal">Klik pada peta untuk memilih lokasi.</span>
                 </p>
             </div>
 
@@ -162,256 +169,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <script>
-        // 4a. --- TEMPELKAN FIREBASE CONFIG ANDA DI SINI ---
-        const firebaseConfig = {
-            apiKey: "AIzaSy...ANDA",
-            authDomain: "proyek-anda.firebaseapp.com",
-            databaseURL: "https://biosensoralga-default-rtdb.asia-southeast1.firebasedatabase.app/", // Pastikan URL ini benar
-            projectId: "proyek-anda",
-            storageBucket: "proyek-anda.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123"
-        };
-        // ---------------------------------------------------
-
-        // 4b. Inisialisasi Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();  // Untuk data realtime
-        const db = firebase.firestore();      // Untuk menyimpan log
-
-        // 4c. Referensi Elemen (Bagian Utama)
-        const tdsValueEl = document.getElementById('tds-value');
-        const tdsStatusEl = document.getElementById('tds-status-text');
-        const tdsGaugeEl = document.getElementById('tds-gauge');
-        const tdsBoxEl = document.getElementById('tds-box');
-        const ntuValueEl = document.getElementById('ntu-value');
-        const ntuStatusEl = document.getElementById('ntu-status-text');
-        const ntuGaugeEl = document.getElementById('ntu-gauge');
-        const ntuBoxEl = document.getElementById('ntu-box');
-        const statusBoxEl = document.getElementById('status-box-main');
-        const overallStatusEl = document.getElementById('overall-status-text');
-        const overallRecEl = document.getElementById('overall-recommendation');
-        const drinkabilityEl = document.getElementById('drinkability-status');
-        const timestampEl = document.getElementById('timestamp');
-        
-        // Referensi Elemen Modal
-        const btnBukaModal = document.getElementById('btn-buka-modal');
-        const modalSimpan = document.getElementById('modal-simpan');
-        const modalContent = document.getElementById('modal-content');
-        const btnModalBatal = document.getElementById('btn-modal-batal');
-        const btnModalGetLocation = document.getElementById('btn-modal-get-location');
-        const btnModalSimpan = document.getElementById('btn-modal-simpan');
-        const modalDataDisplay = document.getElementById('modal-data-display');
-        const modalTanggalDisplay = document.getElementById('modal-tanggal-display');
-        const modalLocationDisplay = document.getElementById('modal-location-display');
-        const modalDeskripsi = document.getElementById('modal-deskripsi');
-
-        // Variabel Global untuk menyimpan data
-        let currentGpsLocation = null;
-        let currentRealtimeData = null;
-
-        // 4d. Listener Firebase (Realtime)
-        const liveDataRef = database.ref('/data_sensor_realtime');
-        liveDataRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return; 
-
-            // Simpan data terbaru ke variabel global
-            currentRealtimeData = data; 
-            
-            // --- Logika untuk memperbarui gauge dan status ---
-            const tdsValue = data.tds_ppm;
-            const ntuValue = data.turbidity_ntu;
-            
-            let tdsClass = '', tdsGaugeClass = '', tdsTextClass = '';
-            let tdsStatus = '';
-            let ntuClass = '', ntuGaugeClass = '', ntuTextClass = '';
-            let ntuStatus = '';
-            let overallClass = '', overallStatus = '', overallRec = '', drinkabilityStatus = '';
-
-            // Proses TDS
-            let tdsGauge = (tdsValue / 1000) * 100;
-            if (tdsGauge > 100) tdsGauge = 100;
-            if (tdsValue < 300) {
-                tdsClass = 'card_aman'; tdsGaugeClass = 'gauge_aman'; tdsTextClass = 'text_aman';
-                tdsStatus = 'Risiko Rendah';
-            } else if (tdsValue < 500) {
-                tdsClass = 'card_cukup'; tdsGaugeClass = 'gauge_cukup'; tdsTextClass = 'text_cukup';
-                tdsStatus = 'Risiko Moderat';
-            } else {
-                tdsClass = 'card_bahaya'; tdsGaugeClass = 'gauge_bahaya'; tdsTextClass = 'text_bahaya';
-                tdsStatus = 'Risiko Tinggi';
-            }
-
-            // Proses Turbidity
-            let ntuGauge = (ntuValue / 10) * 100;
-            if (ntuGauge > 100) ntuGauge = 100;
-            if (ntuValue < 1) {
-                ntuClass = 'card_aman'; ntuGaugeClass = 'gauge_aman'; ntuTextClass = 'text_aman';
-                ntuStatus = 'Jernih (Risiko Rendah)';
-            } else if (ntuValue < 5) {
-                ntuClass = 'card_cukup'; ntuGaugeClass = 'gauge_cukup'; ntuTextClass = 'text_cukup';
-                ntuStatus = 'Agak Keruh (Risiko Moderat)';
-            } else {
-                ntuClass = 'card_bahaya'; ntuGaugeClass = 'gauge_bahaya'; ntuTextClass = 'text_bahaya';
-                ntuStatus = 'Sangat Keruh (Risiko Tinggi)';
-            }
-
-            // Proses Status Keseluruhan
-            if (tdsClass === 'card_bahaya') {
-                overallClass = 'status_bahaya'; overallStatus = 'RISIKO LOGAM TINGGI';
-                overallRec = 'TDS sangat tinggi. Sangat disarankan uji lab untuk logam berat!';
-            } else if (tdsClass === 'card_cukup') {
-                overallClass = 'status_cukup'; overallStatus = 'RISIKO LOGAM MODERAT';
-                overallRec = 'TDS cukup tinggi. Ada kemungkinan mengandung logam.';
-            } else {
-                overallClass = 'status_aman'; overallStatus = 'RISIKO LOGAM RENDAH';
-                overallRec = 'TDS rendah, kemungkinan logam berat terlarut rendah.';
-            }
-
-            // Proses Kelayakan Minum
-            if (tdsClass === 'card_bahaya' || ntuClass === 'card_bahaya') {
-                drinkabilityStatus = 'Kelayakan Minum: SANGAT TIDAK DISARANKAN';
-            } else if (tdsClass === 'card_cukup' || ntuClass === 'card_cukup') {
-                drinkabilityStatus = 'Kelayakan Minum: Disarankan dimasak / filtrasi dahulu';
-            } else {
-                drinkabilityStatus = 'Kelayakan Minum: Aman (sesuai standar TDS & Kekeruhan)';
-            }
-
-            // Update Tampilan (DOM)
-            tdsValueEl.innerText = tdsValue.toFixed(0);
-            tdsStatusEl.innerText = tdsStatus;
-            tdsBoxEl.className = 'bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 ' + tdsClass;
-            tdsGaugeEl.className = 'w-full rounded-full ' + tdsGaugeClass;
-            tdsGaugeEl.style.height = tdsGauge + '%';
-            tdsValueEl.className = 'text-6xl font-bold ' + tdsTextClass;
-            tdsStatusEl.className = 'font-bold text-xl mt-2 ' + tdsTextClass;
-            ntuValueEl.innerText = ntuValue.toFixed(0);
-            ntuStatusEl.innerText = ntuStatus;
-            ntuBoxEl.className = 'bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 ' + ntuClass;
-            ntuGaugeEl.className = 'w-full rounded-full ' + ntuGaugeClass;
-            ntuGaugeEl.style.height = ntuGauge + '%';
-            ntuValueEl.className = 'text-6xl font-bold ' + ntuTextClass;
-            ntuStatusEl.className = 'font-bold text-xl mt-2 ' + ntuTextClass;
-            statusBoxEl.className = 'p-6 rounded-lg shadow-lg text-white text-center mb-6 ' + overallClass;
-            overallStatusEl.innerText = overallStatus;
-            overallRecEl.innerText = overallRec;
-            drinkabilityEl.innerText = drinkabilityStatus;
-            const timestamp = new Date(data.timestamp);
-            timestampEl.innerText = "Update Terakhir: " + timestamp.toLocaleString('id-ID');
-        
-        });
-
-        // --- 5. FUNGSI-FUNGSI BARU UNTUK MODAL ---
-
-        function checkModalSaveButtonState() {
-            if (currentGpsLocation && modalDeskripsi.value.trim() !== "") {
-                btnModalSimpan.disabled = false;
-            } else {
-                btnModalSimpan.disabled = true;
-            }
-        }
-
-        function openSimpanModal() {
-            if (!currentRealtimeData) {
-                alert("Belum ada data realtime. Tunggu sensor mengirim data.");
-                return;
-            }
-            currentGpsLocation = null;
-            modalDeskripsi.value = "";
-            modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-gray-500 font-normal">Belum diatur.</span>';
-            btnModalSimpan.disabled = true;
-
-            modalDataDisplay.innerText = `TDS: ${currentRealtimeData.tds_ppm.toFixed(0)} ppm | NTU: ${currentRealtimeData.turbidity_ntu.toFixed(0)} NTU`;
-            modalTanggalDisplay.innerText = "Tanggal: " + new Date().toLocaleString('id-ID');
-            
-            modalSimpan.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.remove('opacity-0', 'scale-95');
-                modalContent.classList.add('opacity-100', 'scale-100');
-            }, 10);
-        }
-
-        function closeSimpanModal() {
-            modalContent.classList.add('opacity-0', 'scale-95');
-            setTimeout(() => {
-                modalSimpan.classList.add('hidden');
-            }, 200);
-        }
-
-        function handleModalGetLocationClick() {
-            if (!navigator.geolocation) {
-                modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-red-500">Browser tidak mendukung Geolocation.</span>';
-                return;
-            }
-
-            btnModalGetLocation.disabled = true;
-            modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-blue-500">Mencari lokasi Anda...</span>';
-
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    currentGpsLocation = {
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    };
-                    modalLocationDisplay.innerHTML = `Lokasi: <span class="text-green-600 font-bold">${currentGpsLocation.lat.toFixed(4)}, ${currentGpsLocation.lon.toFixed(4)}</span> (Tersimpan)`;
-                    btnModalGetLocation.disabled = false;
-                    checkModalSaveButtonState();
-                },
-                (error) => {
-                    currentGpsLocation = null;
-                    modalLocationDisplay.innerHTML = `Lokasi: <span class="text-red-500">Gagal: ${error.message}.</span>`;
-                    btnModalGetLocation.disabled = false;
-                    checkModalSaveButtonState();
-                }
-            );
-        }
-
-        function handleModalSimpanClick() {
-            const deskripsi = modalDeskripsi.value.trim();
-
-            if (!currentGpsLocation || !currentRealtimeData || deskripsi === "") {
-                alert("Gagal. Pastikan lokasi sudah didapat dan deskripsi sudah diisi.");
-                return;
-            }
-
-            btnModalSimpan.disabled = true;
-            btnModalSimpan.innerText = "Menyimpan...";
-            
-            const logData = {
-                tds_ppm: currentRealtimeData.tds_ppm,
-                turbidity_ntu: currentRealtimeData.turbidity_ntu,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(), // Timestamp Firestore
-                latitude: currentGpsLocation.lat,
-                longitude: currentGpsLocation.lon,
-                deskripsi: deskripsi
-            };
-            
-            // Simpan ke Firestore
-            db.collection("sensor_logs").add(logData)
-            .then((docRef) => {
-                console.log("Log tersimpan dengan ID: ", docRef.id);
-                alert("Sukses! Data log baru telah disimpan.");
-                btnModalSimpan.innerText = "Simpan";
-                closeSimpanModal();
-            })
-            .catch((error) => {
-                console.error("Gagal menyimpan ke Firestore: ", error);
-                alert("Gagal menyimpan data ke Firebase.");
-                btnModalSimpan.innerText = "Simpan";
-                btnModalSimpan.disabled = false;
-            });
-        }
-        
-        // --- 6. EVENT LISTENERS ---
-        btnBukaModal.addEventListener('click', openSimpanModal);
-        btnModalBatal.addEventListener('click', closeSimpanModal);
-        btnModalGetLocation.addEventListener('click', handleModalGetLocationClick);
-        btnModalSimpan.addEventListener('click', handleModalSimpanClick);
-        modalDeskripsi.addEventListener('input', checkModalSaveButtonState);
-
-    </script>
+    <script src="./js/firebase-config.js"></script>
+    <script src="./js/dashboard.js"></script>
 </body>
 </html>
