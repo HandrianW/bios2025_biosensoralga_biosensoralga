@@ -2,9 +2,8 @@
  * public/js/dashboard.js
  * Logika utama untuk halaman dashboard (dashboard.html)
  *
- * FITUR TAMBAHAN:
- * - Data Turbiditas dimanipulasi secara lokal di browser
- * untuk tujuan testing (naik-turun setiap 1 menit).
+ * Versi ini membaca data murni (asli) dari Firebase
+ * tanpa simulasi.
  */
 
 // 4b. Inisialisasi Firebase
@@ -53,38 +52,21 @@ liveDataRef.on('value', (snapshot) => {
     if (!data) return; 
 
     // Simpan data terbaru ke variabel global
-    // Kita simpan data *sebelum* dimanipulasi
+    // Ini adalah data asli dari ESP32
     currentRealtimeData = data; 
     
     // --- (Logika untuk memperbarui gauge dan status) ---
 
     // =======================================================
-    // --- MULAI BLOK SIMULASI DATA (UNTUK TESTING) ---
+    // --- BLOK SIMULASI DATA DIHAPUS ---
     // =======================================================
     // Kita ambil data TDS asli dari ESP32
     const tdsValue = data.tds_ppm;
-    
-    // Kita BUANG data turbidity_ntu yang asli dan kita buat data palsu
-    let ntuValue;
-    // Dapatkan waktu saat ini di browser dalam siklus 2 menit (120,000 milidetik)
-    const timeInCycle = new Date().getTime() % 120000; 
-
-    if (timeInCycle < 60000) {
-        // MENIT PERTAMA: Beri nilai RENDAH (DI BAWAH 1)
-        // Angka acak antara 0.1 dan 0.9
-        ntuValue = (Math.random() * (0.9 - 0.1) + 0.1);
-    } else {
-        // MENIT KEDUA: Beri nilai TINGGI (DI ATAS 1)
-        // Angka acak antara 1.1 dan 4.9 (untuk menguji status "Cukup")
-        ntuValue = (Math.random() * (4.9 - 1.1) + 1.1);
-    }
-    
-    // Simpan juga data simulasi ke data 'realtime'
-    // agar jika user menekan "Simpan", data simulasilah yang tersimpan.
-    currentRealtimeData.turbidity_ntu = ntuValue;
+    // Kita ambil data NTU asli dari ESP32
+    const ntuValue = data.turbidity_ntu;
     
     // =======================================================
-    // --- AKHIR BLOK SIMULASI DATA ---
+    // --- AKHIR BLOK PENGHAPUSAN SIMULASI ---
     // =======================================================
     
     let tdsClass = '', tdsGaugeClass = '', tdsTextClass = '';
@@ -107,7 +89,7 @@ liveDataRef.on('value', (snapshot) => {
         tdsStatus = 'Risiko Tinggi';
     }
 
-    // Proses Turbidity (Menggunakan data SIMULASI)
+    // Proses Turbidity (Menggunakan data ASLI)
     let ntuGauge = (ntuValue / 10) * 100; // Gauge max diset ke 10
     if (ntuGauge > 100) ntuGauge = 100;
     if (ntuValue < 1) {
@@ -151,8 +133,8 @@ liveDataRef.on('value', (snapshot) => {
     tdsValueEl.className = 'text-6xl font-bold ' + tdsTextClass;
     tdsStatusEl.className = 'font-bold text-xl mt-2 ' + tdsTextClass;
     
-    // Update Turbidity dengan nilai simulasi
-    ntuValueEl.innerText = ntuValue.toFixed(1); // Tampilkan 1 desimal agar 0.x terlihat
+    // Update Turbidity dengan nilai asli
+    ntuValueEl.innerText = ntuValue.toFixed(1); 
     ntuStatusEl.innerText = ntuStatus;
     ntuBoxEl.className = 'bg-white/80 backdrop-blur-md p-6 rounded-lg shadow-md border-l-8 ' + ntuClass;
     ntuGaugeEl.className = 'w-full rounded-full ' + ntuGaugeClass;
@@ -196,7 +178,7 @@ function openSimpanModal() {
     modalLocationDisplay.innerHTML = 'Lokasi: <span class="text-gray-500 font-normal">Opsional. Klik peta untuk memilih.</span>';
     btnModalSimpan.disabled = true; // Tombol nonaktif sampai deskripsi diisi
 
-    // Isi data sensor & tanggal (Data NTU akan terisi data simulasi)
+    // Isi data sensor & tanggal (Data NTU akan terisi data ASLI)
     modalDataDisplay.innerText = `TDS: ${currentRealtimeData.tds_ppm.toFixed(0)} ppm | NTU: ${currentRealtimeData.turbidity_ntu.toFixed(1)} NTU`;
     modalTanggalDisplay.innerText = "Tanggal: " + new Date().toLocaleString('id-ID');
     
@@ -262,7 +244,7 @@ function handleModalSimpanClick() {
     // Siapkan data lengkap untuk disimpan
     const logData = {
         tds_ppm: currentRealtimeData.tds_ppm,
-        turbidity_ntu: currentRealtimeData.turbidity_ntu, // Ini akan berisi data simulasi
+        turbidity_ntu: currentRealtimeData.turbidity_ntu, // Ini akan berisi data ASLI
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         deskripsi: deskripsi,
         latitude: currentGpsLocation ? currentGpsLocation.lat : null,
